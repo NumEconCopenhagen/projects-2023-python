@@ -4,5 +4,4 @@
 - Caroline
 
 This repository contains  
-1. Inaugural project. 
- f 
+1. Inaugural project
