@@ -34,9 +34,7 @@ class HouseholdSpecializationModelClass:
         par.beta_0_target = 0.4
         par.beta_1_target = -0.1
 
-        # e.1 addition to the model
-        
-
+     
         # f. solution
         sol.LM_vec = np.zeros(par.wF_vec.size)
         sol.HM_vec = np.zeros(par.wF_vec.size)
@@ -122,7 +120,7 @@ class HouseholdSpecializationModelClass:
 
 
 
-    def solve(self,do_print=False):
+    def solve_con(self,do_print=False):
         """ solve model continously """
 
         par = self.par
@@ -143,8 +141,8 @@ class HouseholdSpecializationModelClass:
         # (iv) Set the bounds
         bounds = ((1e-8,24), (1e-8,24), (1e-8,24), (1e-8,24))
 
-        # (v) Applying the minimize function
-        res = optimize.minimize(obj, guess, method='SLSQP', bounds=bounds, constraints=constraints)
+        # (v) Applying the minimize function (I use Nelder-Mead instead of SLSQP, since Nelder-Mead provides results that fit better)
+        res = optimize.minimize(obj, guess, method='Nelder-Mead', bounds=bounds, constraints=constraints)
         
         # (vi) Saving the results
         opt.LM = res.x[0]
@@ -161,9 +159,9 @@ class HouseholdSpecializationModelClass:
     def solve_wF_vec(self,discrete=False):
         """ solve model for vector of female wages """
 
-        par=self.par
-        sol=self.sol
-        max=SimpleNamespace()
+        par = self.par
+        sol = self.sol
+        max = SimpleNamespace()
 
         # (a) Looping
         for i, wF in enumerate(par.wF_vec):
@@ -172,7 +170,7 @@ class HouseholdSpecializationModelClass:
            par.wF = wF
 
            # (ii) defining the objective function
-           obj = lambda x: -self.calc_utility(x[0], x[1], x[2],x[3])
+           obj = lambda x: -self.calc_utility(x[0], x[1], x[2], x[3])
         
            # (iii) Setting the initial guess
            guess = [4, 4.2, 5, 5.2]
@@ -184,7 +182,7 @@ class HouseholdSpecializationModelClass:
            bounds = ((1e-8,24), (1e-8,24), (1e-8,24), (1e-8,24))
 
            # (vi) defining the solutiong by the minimizing function
-           res = optimize.minimize(obj, guess, method='SLSQP', bounds=bounds, constraints=constraints)
+           res = optimize.minimize(obj, guess, method='Nelder-Mead', bounds=bounds, constraints=constraints)
 
            # (vii) finding and stacking the results
            max.HM = res.x[1]
@@ -220,8 +218,8 @@ class HouseholdSpecializationModelClass:
         par.sigma = x[1]
         
         # (ii) Solving optimal hours worked in home
-        solver = self.solve_wF_vec()
-        
+        solver = self.solve_wF_vec() 
+
         # (iii) Estimating the regression
         regression = self.run_regression()
         
@@ -246,16 +244,58 @@ class HouseholdSpecializationModelClass:
         bounds = ((0, 1), (0, None))
         
         # (iii) defining the solution by the minimizing function
-        res = optimize.minimize(self.objective, guess, bounds=bounds, method='SLSQP')
+        res = optimize.minimize(self.objective, guess, bounds=bounds, method='Nelder-Mead')
         
         # (iv) Saving and printing the reults
         alpha_sigma.alpha = res.x[0]
         alpha_sigma.sigma = res.x[1]
-        print(f'optimal alpha = {alpha_sigma.alpha:.4f}')
-        print(f'optimal sigma = {alpha_sigma.sigma:.4f}')
+        print(f'Optimal alpha = {alpha_sigma.alpha:.4f}')
+        print(f'Optimal sigma = {alpha_sigma.sigma:.4f}')
 
         return res
     
 
 
 
+    def objectiv(self,x):
+        """ calculate the objective function for the extented model"""
+
+        par = self.par
+        sol = self.sol
+        
+        # (i) Updating sigma
+        par.sigma = x[0]
+        
+        # (ii) Solving optimal hours worked in home
+        solve = self.solve_wF_vec() 
+
+        # (iii) Estimating the regression
+        regressio = self.run_regression()
+        
+        # (iv) Calculating the function
+        obj = (par.beta_0_target - sol.beta_0)**2 + (par.beta_1_target - sol.beta_1)**2
+
+        return obj
+
+    def extented(self, sigma=None):
+        """ extented estimations """
+
+        par = self.par
+        sol = self.sol
+        ssigma=SimpleNamespace()
+        
+        # (i) Setting the guess
+        guess = [0.5]
+
+        # (ii) Defining the bounds for sigma
+        bounds = [(0.2, 0.8)]
+        
+        # (iii) defining the solution by the minimizing function
+        res = optimize.minimize(self.objectiv, guess, bounds=bounds, method='Nelder-Mead')
+        
+        # (iv) Saving and printing the reults
+        ssigma.sigma = res.x[0]
+        print(f'Optimal sigma = {ssigma.sigma:.2f}')
+
+        return res
+    
