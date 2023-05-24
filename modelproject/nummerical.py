@@ -19,10 +19,10 @@ class OLGmodelnummerical():
     def setup_initial(self):
 
         # (i) Model
-        self.alpha = 1/3
-        self.tau = 0.25
+        self.alpha = 0.33
+        self.tau = 0.2
         self.A = 20
-        self.beta = 0.25
+        self.rho = 0.2
         self.n = 0.01
 
 
@@ -86,7 +86,7 @@ class OLGmodelnummerical():
 
 
         # (ii) Lifetime tility
-        utility = self.U_t(c_t) + self.beta * self.U_t(c_t1)
+        utility = self.U_t(c_t) + (1 / (1 + self.rho)) * self.U_t(c_t1)
 
 
         # (iii) return
