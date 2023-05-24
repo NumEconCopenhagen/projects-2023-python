@@ -11,11 +11,6 @@ class OLGmodelanalytical():
         
         self.par = SimpleNamespace()
         self.setup()
-        self.utility()
-        self.consumerBC
-        self.eulerequation
-        self.Prices
-        self.Optimalsaving
 
 
     """ Defining the parameters and variables """
@@ -24,37 +19,41 @@ class OLGmodelanalytical():
         par = self.par
 
         # (i) Consumer's utility function
-        par.c1t = sm.symbols('c_{1t}')          # Young 
-        par.c2t1 = sm.symbols('c_{2t+1}')       # Old
-        par.beta = sm.symbols('beta')           # preference
-        par.Ut = sm.symbols('U_t')              # utility
+        par.c_1t = sm.symbols('c_{1t}')          # Young 
+        par.c_2t1 = sm.symbols('c_{2t+1}')       # Old
+        par.rho = sm.symbols('rho')             # preference
+        par.U_t = sm.symbols('U_t')              # utility
 
         # (ii) Young generation's budget contraints
-        par.wt = sm.symbols('w_t')              # wage in t
+        par.w_t = sm.symbols('w_t')              # wage in t
         par.tau = sm.symbols('tau')             # tax
-        par.st = sm.symbols('s_t')              # saving rate
+        par.s_t = sm.symbols('s_t')              # saving rate
 
         # (iii) Old generation's budget contraints
-        par.wt1 = sm.symbols('w_{t+1}')         # wage in t+1
-        par.dt1 = sm.symbols('d_{t+1}')         # retirement in t+1
+        par.w_t1 = sm.symbols('w_{t+1}')         # wage in t+1
+        par.d_t1 = sm.symbols('d_{t+1}')         # retirement in t+1
         par.n = sm.symbols('n')                 # population growth
-        par.rt = sm.symbols('r_t')              # rent of capital in t
-        par.rt1 = sm.symbols('r_{t+1}')         # rent of capital in t+1
+        par.r_t = sm.symbols('r_t')              # rent of capital in t
+        par.r_t1 = sm.symbols('r_{t+1}')         # rent of capital in t+1
 
         # (iv) Lagrange multiplier
         par.lambdaa = sm.symbols('lambda')      # lamdba
 
         # (v) Firm's production function
-        par.Kt = sm.symbols('K_t')              # Kapital in t
-        par.Kt1 = sm.symbols('K_{t+1}')         # Kapital in t+1
-        par.kt = sm.symbols('k_t')              # kapital per worker in t
-        par.kt1 = sm.symbols('k_{t+1}')         # kapital per worker in t+1
-        par.kss = sm.symbols('k^*')             # ss for capital
-        par.Lt = sm.symbols('L_t')              # Labour in t
-        par.Lt1 = sm.symbols('L_{t+1}')         # Labour in t+1
+        par.K_t = sm.symbols('K_t')              # Kapital in t
+        par.K_t1 = sm.symbols('K_{t+1}')         # Kapital in t+1
+        par.k_t = sm.symbols('k_t')              # kapital per worker in t
+        par.k_t1 = sm.symbols('k_{t+1}')         # kapital per worker in t+1
+        par.k_ss = sm.symbols('k^*')             # ss for capital
+        par.L_t = sm.symbols('L_t')              # Labour in t
+        par.L_t1 = sm.symbols('L_{t+1}')         # Labour in t+1
         par.alpha = sm.symbols('alpha')         # share of capital
         par.A = sm.symbols('A')                 # TFP
 
+        # (vi) helping parameters
+        par.a = sm.symbols('A')
+        par.b = sm.symbols('B')
+        par.c = sm.symbols('C')
 
 
     """ Defining the utility function for consumers """
@@ -62,7 +61,7 @@ class OLGmodelanalytical():
         par = self.par
 
         # (i) Consumer's utility function
-        return sm.log(par.c1t) + par.beta * sm.log(par.c2t1)
+        return sm.log(par.c_1t) + 1 / (1 + par.rho) * sm.log(par.c_2t1)
 
 
 
@@ -70,30 +69,27 @@ class OLGmodelanalytical():
     def consumerBC(self):
         par = self.par
 
+        # (i) Public retirement
+        d_t1 = par.w_t1 + par.tau
 
+        # (ii) Young generation's BC
+        BC_Y = sm.Eq(par.c_1t + par.s_t, (1 - par.tau) * par.w_t)
 
-        # (i) Young generation's BC
-        BC_Y = sm.Eq(par.c1t, (1 - par.tau) * par.wt - par.st)
+        # (iii) Old generation's BC
+        BC_O = sm.Eq(par.c_2t1, par.s_t * (1 + par.r_t1) + (1 + par.n) * d_t1)
 
-        # (i.a) Isolating for disposal income
-        BC_Y_dis_income = sm.Eq((1 - par.tau) * par.wt, par.c1t + par.st)
+        # (iv) Isolating saving qua 'solver'
+        BC_O_saving = sm.solve(BC_O, par.s_t) 
 
+        # (v) Inserting savings into BC_Y
+        BC_Y_s =  BC_Y.subs(par.s_t, BC_O_saving[0])
 
-        # (ii) Old generation's BC
-        d_t1 = par.wt1 + par.tau
-        BC_O = sm.Eq(par.c2t1, par.st * (1 + par.rt1) + (1 + par.n) * d_t1)
+        # (vi) Solving for the optimal savingrate
+        RHS = sm.solve(BC_Y_s, par.w_t * (1 - par.tau))[0]
+        LHS = par.w_t * (1 - par.tau)
 
-        # (ii.a) Isolating saving qua 'solver'
-        BC_O_saving = sm.solve(BC_O, par.st) 
-        
-
-        # (iii) Solving for the optimal savingrate
-        BC_Y = BC_Y_dis_income.subs(par.st, BC_O_saving)
-        L = sm.solve(BC_Y, par.wt * (1 - par.tau))[0]
-        R = par.wt * (1-par.tau)
-
-
-        return L-R
+        # (vii) Return
+        return RHS - LHS
         
 
 
@@ -101,74 +97,28 @@ class OLGmodelanalytical():
     def eulerequation(self):
         par = self.par
 
-        # (a) Lagrange
-        Lagrangee = self.utility() + par.lambdaa * self.consumerBC()
+        # (i) Lagrange
+        Lagrange = self.utility() + par.lambdaa * self.consumerBC()
 
 
-        # (b) FOC
-        FOC_Y = sm.Eq(0, sm.diff(Lagrangee, par.c1t))
-        FOC_O = sm.Eq(0, sm.diff(Lagrangee, par.c2t1))
+        # (ii) FOC
+        FOC_Y = sm.Eq(0, sm.diff(Lagrange, par.c_1t))
+        FOC_O = sm.Eq(0, sm.diff(Lagrange, par.c_2t1))
 
 
-        # (c) Lambda
+        # (iii) Lambda
         Lambda1 = sm.solve(FOC_Y, par.lambdaa)[0]
-        Lambda2 = sm.solve(FOC_O, par.lambdaa)
+        Lambda2 = sm.solve(FOC_O, par.lambdaa)[0]
 
 
-        # (d) Eulers equation
-        E_Y = sm.solve(sm.Eq(Lambda1, Lambda2), par.c1t)[0]
+        # (iv) Eulers equation
+        E_Y = sm.solve(sm.Eq(Lambda1, Lambda2), par.c_1t)[0]
 
 
-        # (e) Return 
-        return sm.Eq(E_Y, par.c1t)
+        # (v) Return 
+        return sm.Eq(E_Y, par.c_1t)
 
 
-
-    """ Defining prices for the firms """
-    def Prices(self):
-        par = self.par
-
-        # (i) Firms profit funciton
-        Profit_t = par.A * par.Kt ** par.alpha * par.Lt ** (1-par.alpha) - (1 + par.rt) * par.Kt - par.wt * par.Lt
-        Profit_t1 = par.A * par.Kt1 ** par.alpha * par.Lt1 ** (1-par.alpha) - (1 + par.rt1) * par.Kt1 - par.wt1 * par.Lt1
-
-
-        # (ii) Rent of capital (FOC)
-        r_k_t = sm.Eq(0, sm.diff(Profit_t, par.Kt))
-        r_k_t1 = sm.Eq(0, sm.diff(Profit_t1, par.Kt1))        
-        
-
-        # (iii) Solve for rent of capital
-        r_k__t = sm.solve(r_k_t, par.rt)[0]
-        r_k__t1 = sm.solve(r_k_t1, par.rt1)[0]
-
-
-        # (iv) Defining capital 
-        K_t_ = par.Lt * par.kt
-        K_t1_ = par.Lt1 * par.kt1
-
-
-        # (v) Inserting
-        r_k___t = r_k_t.subs(par.Kt, K_t_)[0]
-        r_k___t1 = r_k_t1.subs(par.Kt1, K_t1_)[0]
-        
-
-        # (vi) Wage (FOC)
-        w__t = sm.Eq(0, sm.diff(Profit_t, par.Lt))
-        w__t1 = sm.Eq(0, sm.diff(Profit_t1, par.Lt1)) 
-        
-        
-        # (vii) Solve for wage
-        w___t = sm.solve(w__t, par.wt)[0]
-        w___t1 = sm.solve(w__t1, par.wt1)[0]
-
-
-        # (iix) Inserting
-        w____t = w__t.subs(par.Kt, K_t_)[0]
-        w____t1 = w__t1.subs(par.Kt1, K_t1_)[0]
-
-
-        return r_k___t, r_k___t1, w____t, w____t1
 
 
 
@@ -178,22 +128,27 @@ class OLGmodelanalytical():
 
 
         # (i) Redefining the public retirement
-        d_t1_ = par.wt1 * par.tau
+        d_t1 = par.w_t1 * par.tau
 
 
         # (ii) BC for periods
-        BC_Y_ = par.wt * (1 - par.tau) - par.st 
-        BC_O_ = par.st * (1 + par.rt1) + d_t1_ * (1 + par.n)
+        BC_Y = par.w_t * (1 - par.tau) - par.s_t 
+        BC_O = par.s_t * (1 + par.r_t1) + d_t1 * (1 + par.n)
 
 
         # (iii) BC into Euler
-        Eulers = self.eulersequation()
-        Saving_Y = Eulers.subs(par.c1t, BC_Y_)
-        Saving_O = Eulers.subs(par.c2t1, BC_O_)
+        Eul = self.eulerequation()
+        sav = (Eul.subs(par.c_1t, BC_Y)).subs(par.c_2t1, BC_O)
 
 
-        # (iv) Optimal saving
-        return sm.solve(Saving_O, par.st)[0]
+        # (iv) Simplify equations
+        saving1 = sm.solve(sav, par.s_t)[0]
+        saving11 = sm.collect(saving1, [par.tau])
+        saving = sm.collect(saving1, [par.w_t, par.w_t1])
+
+
+        # (v) Optimal saving
+        return saving
     
 
 
@@ -201,49 +156,34 @@ class OLGmodelanalytical():
     def capitalacc(self):
         par = self.par
 
-        # (i) Transition
-        k_t1_ = 1 / (1+par.n) * par.st
+        # (i) defining parameters to help
+        a = (1 / (1 + (1 + par.rho)/(2 + par.rho) * ((1 - par.alpha) / par.alpha) * par.tau))
+        b = ((1 - par.alpha) * (1 - par.tau)) / ((1 + par.n) * (2 + par.rho))
+        c = par.A * par.k_t**par.alpha
+         
+        # (ii) Capital accumulation
+        kt_00 = par.a * (par.b * par.c)
+        kt_01 = ((kt_00.subs(par.a, a)).subs(par.b ,b)).subs(par.c, c)
+        k_t = sm.Eq(par.k_t1, kt_01)
 
-
-        # (ii) Market clearing in t=1
-        r_1 = self.Prices()[0]
-        w_1 = self.Prices()[1]
-
-
-        # (iii) Market clearing in t=2
-        r_2 = self.Prices()[2]
-        w_2 = self.Prices()[3]
-
-
-        # (iv) savings
-        k_t1__ = k_t1_.subs(par.st, self.Optimalsaving())
-
-
-        # (v) Substituting parameters 
-
-        # (v.a) rent of capital
-        k_t1___ = k_t1__.subs(par.rt, r_1)
-        k_t1____ = k_t1___.subs(par.rt1, r_2)
+        # (iii) Return
+        return k_t
         
-        # (v.b) wage
-        k_t1_____ = k_t1____.subs(par.wt, w_1)
-        k_t1______ = k_t1_____.subs(par.wt1, w_2)
-
-
-        # (vi) Equation for capital
-        k_t1_eq = sm.Eq(0, (par.kt1 - k_t1______))
-
-
-        # (vii) Solving for kapital
-        k_t1_eq_ = sm.solve(k_t1_eq, par.kt1)[0]
-
-
-        # (iix) Steady state
-        k_t1_eq__ = k_t1_eq_.subs(par.kt, par.kss)
-        k_t1_eq___ = sm.Eq(par.kss, k_t1_eq__)
-        kapital_ss = sm.solve(k_t1_eq___, par.kss)[0]
-
-
-        # (ix) Return kapital (k_(t+1)) and steady state for capital
-        return sm.Eq(par.kt1, k_t1_eq_), sm.Eq(par.kss, kapital_ss), sm.solve(k_t1_eq___, par.kss)[0] 
         
+        
+    """ Defining steady state """
+    def steadystate(self):
+        par = self.par
+
+        # (i) Helping parameters
+        a = (1 / (1 + (1 + par.rho) / (2 + par.rho) * ((1 - par.alpha) / par.alpha) * par.tau))
+        b = ((1 - par.alpha) * (1 - par.tau)) / ((1 + par.n) * (2 + par.rho))
+        c = 1 / (1 - par.alpha)
+        
+        # (b) Steady state 
+        k_ss_0 = (a * b * par.a) ** par.c
+        k_ss_1 = ((k_ss_0.subs(par.a, a)).subs(par.b, b)).subs(par.c, c) 
+        k_star = sm.Eq(par.k_ss, k_ss_1)
+        
+        # (c) Return 
+        return k_ss_1

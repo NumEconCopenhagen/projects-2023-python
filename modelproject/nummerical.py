@@ -22,14 +22,14 @@ class OLGmodelnummerical():
         self.alpha = 1/3
         self.tau = 0.25
         self.A = 20
-        self.beta = 0.5
+        self.beta = 0.25
         self.n = 0.01
 
 
         # (ii) Transition
         self.kt_min = 1e-10
         self.kt_max = 20
-        self.numberdots = 5000
+        self.numberdots = 1000
         
 
 
@@ -135,12 +135,12 @@ class OLGmodelnummerical():
             # (ii.c) Deviation
             devi = (k_t1 - s_t / (1 + self.n)) ** 2 
 
-            # (ii.d) return
+            # (ii.d) Return
             return devi
         
 
         # (iii) Optimal k_t
-        kt_max = self.kt_max + 1
+        kt_max = self.kt_max
         kt_min = 0
         k_t = optimize.fminbound(obj, kt_min, kt_max, disp=disp)
 
@@ -162,7 +162,20 @@ class OLGmodelnummerical():
         for i, k_t1 in enumerate(self.plot_k_t1):
             k_t = self.equilibrium(k_t1)
             self.plot_k_t1[i] = k_t
+            if (np.abs(k_t1 - k_t) < 0.01 and k_t > 0.01 and k_t < 19):
+                self.ss = k_t 
 
+
+
+    """ Plotting the transition curve """
+    def plot_transition_curve(self, ax, **kwargs):
+
+        ax.plot(self.plot_k_t, self.plot_k_t1, **kwargs)
+
+        ax.set_xlim(0, self.kt_max)
+        ax.set_ylim(0, self.kt_max)
+        ax.set_xlabel("$k_t$")
+        ax.set_ylabel("$k_{t+1}$")
 
 
 
@@ -176,13 +189,3 @@ class OLGmodelnummerical():
 
         ax.plot([self.kt_min, self.kt_max], [self.kt_min, self.kt_max], **kwargs)
 
-
-    """ Plotting the transition curve """
-    def transition_curve(self, ax, **kwargs):
-
-        ax.plot(self.plot_k_t, self.plot_k_t1, **kwargs)
-
-        ax.set_xlim([0, self.kt_max])
-        ax.set_ylim([0, self.kt_max])
-        ax.set_xlabel("$k_t$")
-        ax.set_ylabel("$k_{t+1}$")
