@@ -32,7 +32,8 @@ class optimaltaxation():
         par.L = sm.symbols('L')
         par.L_ss = sm.symbols('L^*')
 
-
+        # Supporting symbols
+        par.V = sm.symbols('V')
 
     """ calculate utility """
     def utility(self):
@@ -47,13 +48,13 @@ class optimaltaxation():
         C = par.kappa + w_bar * par.L
 
         # (iii) utility 
-        u = sm.log(C ** par.alpha * par.G ** (1 - par.alpha)) - par.v * par.L ** 2 / 2
+        lign1 = sm.Eq(sm.log(C ** par.alpha * par.G ** (1 - par.alpha)) - par.v * par.L ** 2 / 2,par.V)
 
         # (iv) Isolation L qua 'solver
-        u_L = sm.solve(u, par.L)
+        u_L = sm.solve(lign1, par.L_ss)
 
         # (iv) return
-        return u
+        return u_L
 
 
 
@@ -61,7 +62,7 @@ class optimaltaxation():
     def opti_labor(self, do_print=False):
 
         par = self.par
-        sol = self.sol
+        #sol = self.sol
         opt = SimpleNamespace()
 
         # (i) Defining objective function
