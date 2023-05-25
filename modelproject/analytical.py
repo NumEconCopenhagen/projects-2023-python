@@ -40,9 +40,9 @@ class OLGmodelanalytical():
         par.lambdaa = sm.symbols('lambda')      # lamdba
 
         # (v) Firm's production function
-        par.K_t = sm.symbols('K_t')              # Kapital in t
-        par.K_t1 = sm.symbols('K_{t+1}')         # Kapital in t+1
-        par.k_t = sm.symbols('k_t')              # kapital per worker in t
+        par.K_t = sm.symbols('K_t')              # capital in t
+        par.K_t1 = sm.symbols('K_{t+1}')         # capital in t+1
+        par.k_t = sm.symbols('k_t')              # capital per worker in t
         par.k_t1 = sm.symbols('k_{t+1}')         # kapital per worker in t+1
         par.k_ss = sm.symbols('k^*')             # ss for capital
         par.L_t = sm.symbols('L_t')              # Labour in t
@@ -51,9 +51,9 @@ class OLGmodelanalytical():
         par.A = sm.symbols('A')                 # TFP
 
         # (vi) helping parameters
-        par.a = sm.symbols('A')
-        par.b = sm.symbols('B')
-        par.c = sm.symbols('C')
+        par.a = sm.symbols('a')
+        par.b = sm.symbols('b')
+        par.c = sm.symbols('c')
 
 
     """ Defining the utility function for consumers """
@@ -100,25 +100,19 @@ class OLGmodelanalytical():
         # (i) Lagrange
         Lagrange = self.utility() + par.lambdaa * self.consumerBC()
 
-
         # (ii) FOC
         FOC_Y = sm.Eq(0, sm.diff(Lagrange, par.c_1t))
         FOC_O = sm.Eq(0, sm.diff(Lagrange, par.c_2t1))
-
 
         # (iii) Lambda
         Lambda1 = sm.solve(FOC_Y, par.lambdaa)[0]
         Lambda2 = sm.solve(FOC_O, par.lambdaa)[0]
 
-
         # (iv) Eulers equation
         E_Y = sm.solve(sm.Eq(Lambda1, Lambda2), par.c_1t)[0]
 
-
         # (v) Return 
         return sm.Eq(E_Y, par.c_1t)
-
-
 
 
 
@@ -126,26 +120,21 @@ class OLGmodelanalytical():
     def Optimalsaving(self):
         par = self.par
 
-
         # (i) Redefining the public retirement
         d_t1 = par.w_t1 * par.tau
-
 
         # (ii) BC for periods
         BC_Y = par.w_t * (1 - par.tau) - par.s_t 
         BC_O = par.s_t * (1 + par.r_t1) + d_t1 * (1 + par.n)
 
-
         # (iii) BC into Euler
         Eul = self.eulerequation()
         sav = (Eul.subs(par.c_1t, BC_Y)).subs(par.c_2t1, BC_O)
-
 
         # (iv) Simplify equations
         saving1 = sm.solve(sav, par.s_t)[0]
         saving11 = sm.collect(saving1, [par.tau])
         saving = sm.collect(saving1, [par.w_t, par.w_t1])
-
 
         # (v) Optimal saving
         return saving
@@ -180,10 +169,10 @@ class OLGmodelanalytical():
         b = ((1 - par.alpha) * (1 - par.tau)) / ((1 + par.n) * (2 + par.rho))
         c = 1 / (1 - par.alpha)
         
-        # (b) Steady state 
+        # (ii) Steady state 
         k_ss_0 = (a * b * par.a) ** par.c
         k_ss_1 = ((k_ss_0.subs(par.a, a)).subs(par.b, b)).subs(par.c, c) 
         k_star = sm.Eq(par.k_ss, k_ss_1)
         
-        # (c) Return 
+        # (iii) Return 
         return k_ss_1

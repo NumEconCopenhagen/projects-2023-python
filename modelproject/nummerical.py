@@ -25,7 +25,6 @@ class OLGmodelnummerical():
         self.rho = 0.2
         self.n = 0.01
 
-
         # (ii) Transition
         self.kt_min = 1e-10
         self.kt_max = 20
@@ -46,14 +45,11 @@ class OLGmodelnummerical():
         # (i) minimum value of epsilon
         epsilon = 1e-10
 
-
         # (ii) steay state
         self.ss = 0
 
-
         # (iii) utility function
         self.U_t = lambda c_t: np.log(np.fmax(c_t, epsilon))
-
 
         # (iv) production function
         self.Y = lambda k_t: self.A * np.fmax(k_t, epsilon) ** self.alpha
@@ -68,10 +64,8 @@ class OLGmodelnummerical():
         # (i) Gross interest rate
         R_t = self.Y_prime(k_t)
 
-
         # (ii) Real rate of wage
         w_t = self.Y(k_t) - self.Y_prime(k_t) * k_t
-
 
         # (iii) return
         return R_t, w_t
@@ -84,10 +78,8 @@ class OLGmodelnummerical():
         # (i) Consumption (old)
         c_t1 = R_t1 * ((1 - self.tau) * w_t - c_t) + (1 + self.n) * (self.tau * w_t1)
 
-
         # (ii) Lifetime tility
         utility = self.U_t(c_t) + (1 / (1 + self.rho)) * self.U_t(c_t1)
-
 
         # (iii) return
         return utility
@@ -100,15 +92,12 @@ class OLGmodelnummerical():
         # (i) Minimize funciton
         obj = lambda c_t: -self.utility_lifetime(c_t, w_t, R_t1, w_t1)
 
-
         # (ii) Defining optimal consumption
         c_max = (1 - self.tau) * w_t 
         c_t = optimize.fminbound(obj, 0, c_max)
 
-
         # (iii) Savings
         s_t = w_t * (1 - self.tau) - c_t
-
 
         # (iv) return
         return s_t
@@ -121,7 +110,6 @@ class OLGmodelnummerical():
 
         # (i) Factor prices in period t+1
         R_t1, w_t1 = self.opti_firms(k_t1)
-
 
         # (ii) Minimize function
         def obj(k_t):
@@ -138,12 +126,10 @@ class OLGmodelnummerical():
             # (ii.d) Return
             return devi
         
-
-        # (iii) Optimal k_t
+        # (iii) Optimal capital (k_t)
         kt_max = self.kt_max
         kt_min = 0
         k_t = optimize.fminbound(obj, kt_min, kt_max, disp=disp)
-
 
         # (iv) return
         return k_t
@@ -155,7 +141,6 @@ class OLGmodelnummerical():
 
         # (i) Capital at t+1
         self.plot_k_t1 = np.linspace(self.kt_min, self.kt_max, self.numberdots)
-
 
         # (ii) Capital at t
         self.plot_k_t = np.empty(self.numberdots)
@@ -170,8 +155,10 @@ class OLGmodelnummerical():
     """ Plotting the transition curve """
     def plot_transition_curve(self, ax, **kwargs):
 
+        # (i) plotting the cuve
         ax.plot(self.plot_k_t, self.plot_k_t1, **kwargs)
 
+        # (ii) Adjusting the figure
         ax.set_xlim(0, self.kt_max)
         ax.set_ylim(0, self.kt_max)
         ax.set_xlabel("$k_t$")
@@ -182,10 +169,12 @@ class OLGmodelnummerical():
     """ Plotting the 45-degree curve """
     def fourtyfive_curve(self, ax, **kwargs):
 
+        # (i) adjusting the plot
         if not "color" in kwargs:
             kwargs["color"] = "black"
         if not "ls" in kwargs:
             kwargs["ls"] = "--"
 
+        # (ii) plotting
         ax.plot([self.kt_min, self.kt_max], [self.kt_min, self.kt_max], **kwargs)
 
