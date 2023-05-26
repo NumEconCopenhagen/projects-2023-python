@@ -62,7 +62,7 @@ class optimaltaxation():
     def opti_labor(self, do_print=False):
 
         par = self.par
-        #sol = self.sol
+        sol = self.sol
         opt = SimpleNamespace()
 
         # (i) Defining objective function
